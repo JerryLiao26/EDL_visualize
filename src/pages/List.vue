@@ -30,7 +30,7 @@ export default {
       this.$router.push({name: 'Edit', params: {index: index}})
     },
     del(index) {
-      let res = confirm('确定删除该EDL？')
+      let res = confirm('Really want to delete this EDL？')
       if (res) {
         let list = JSON.parse(localStorage.getItem('savedList'))
         list.splice(index, 1)

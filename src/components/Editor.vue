@@ -2,6 +2,7 @@
 <div class="content-container">
   <div class='button' v-if='mode == "import"' id='choose_butt' @click='choose_file'>Choose File</div>
   <!-- Invisible -->
+  <div v-bind:class='["button", {invisible: (mode == "import")}]' id='export_butt' @click='export_file'>Export EDL</div>
   <div v-bind:class='["button", {invisible: (mode == "import")}]' v-if='ifVisualize' id='editor_butt' @click='no_visualize'>Edit EDL</div>
   <div v-bind:class='["button", {invisible: (mode == "import")}]' v-if='!ifVisualize' id='visual_butt' @click='visualize'>Visualize EDL</div>
   <div v-bind:class='["button", {invisible: (mode == "import")}]' v-if='!ifVisualize' id='save_butt' @click="save">Save EDL</div>
@@ -9,8 +10,11 @@
   <div v-bind:class='["button", {invisible: (mode == "import")}]' v-if='ifVisualize && (visualizeIndex > 0)' id='prev_butt' @click="previous">Previous Exp</div>
   <div v-bind:class='["button", {invisible: (mode == "import")}]' v-if='ifVisualize && (visualizeIndex < (parsedContent.length -1))' id='next_butt' @click="next">Next Exp</div>
   <input type="file" id='file' class='invisible' v-if='mode == "import"' v-on:change='read_file'>
+
   <textarea ref='editor' id='editor' v-if='!ifVisualize' v-bind:class='[{invisible: (mode == "import")}]' v-on:keydown='handle_keys' v-model='input'></textarea>
+
   <p class="error-hint" v-if="errorMessage">{{errorMessage}}</p>
+
   <div class="visualize-container" v-if='ifVisualize && (errorMessage == "")'>
     <div class="exp-container">
       <div class="exp-item">
@@ -18,36 +22,39 @@
         {{parsedContent[visualizeIndex].name}}
       </div>
       <!-- PLACE -->
-      <div class="exp-subitem">
-        <span class="attr-name">PLACE</span>
-        <template v-if='parsedContent[visualizeIndex].place.name == "" && !parsedContent[visualizeIndex].place.attr_group'>ANY</template>
-        <template v-else>{{parsedContent[visualizeIndex].place.name}}</template>
-      </div>
-      <div class="exp-subitem-attr" v-for='(attr_item, attr_index) in parsedContent[visualizeIndex].place.attr_group' @click='view(attr_item.attr_name, attr_item.value)'>
-        <span class="attr-name">{{attr_item.attr_name.toUpperCase()}}</span>
-      </div>
+      <template v-for='place_item in parsedContent[visualizeIndex].place'>
+        <div class="exp-subitem">
+          <span class="attr-name">PLACE</span>
+          <template>{{place_item.name}}</template>
+        </div>
+        <div class="exp-subitem-attr" v-for='(attr_item, attr_index) in place_item.attr_group' @click='view(attr_item.attr_name, attr_item.value)'>
+          <span class="attr-name">{{attr_item.attr_name.toUpperCase()}}</span>
+        </div>
+      </template>
       <!-- ROLE -->
-      <div class="exp-subitem">
-        <span class="attr-name">ROLE</span>
-        <template v-if='parsedContent[visualizeIndex].role.name == "" && !parsedContent[visualizeIndex].role.attr_group'>ANY</template>
-        <template>{{parsedContent[visualizeIndex].role.name}}</template>
-      </div>
-      <div class="exp-subitem-attr" v-for='(attr_item, attr_index) in parsedContent[visualizeIndex].role.attr_group' @click='view(attr_item.attr_name, attr_item.value)'>
-        <span class="attr-name">{{attr_item.attr_name.toUpperCase()}}</span>
-      </div>
+      <template v-for='role_item in parsedContent[visualizeIndex].role'>
+        <div class="exp-subitem">
+          <span class="attr-name">ROLE</span>
+          <template>{{role_item.name}}</template>
+        </div>
+        <div class="exp-subitem-attr" v-for='(attr_item, attr_index) in role_item.attr_group' @click='view(attr_item.attr_name, attr_item.value)'>
+          <span class="attr-name">{{attr_item.attr_name.toUpperCase()}}</span>
+        </div>
+      </template>
       <!-- TIME -->
-      <div class="exp-subitem">
-        <span class="attr-name">TIME</span>
-        <template v-if='parsedContent[visualizeIndex].time.name == "" && !parsedContent[visualizeIndex].time.attr_group'>ANY</template>
-        <template>{{parsedContent[visualizeIndex].time.name}}</template>
-      </div>
-      <div class="exp-subitem-attr" v-for='(attr_item, attr_index) in parsedContent[visualizeIndex].time.attr_group' @click='view(attr_item.attr_name, attr_item.value)'>
-        <span class="attr-name">{{attr_item.attr_name.toUpperCase()}}</span>
-      </div>
+      <template v-for='time_item in parsedContent[visualizeIndex].time'>
+        <div class="exp-subitem">
+          <span class="attr-name">TIME</span>
+          <template>{{time_item.name}}</template>
+        </div>
+        <div class="exp-subitem-attr" v-for='(attr_item, attr_index) in time_item.attr_group' @click='view(attr_item.attr_name, attr_item.value)'>
+          <span class="attr-name">{{attr_item.attr_name.toUpperCase()}}</span>
+        </div>
+      </template>
       <!-- INPUT -->
       <div class="exp-subitem" v-if='parsedContent[visualizeIndex].input'>
         <span class="attr-name">INPUT</span>
-        {{parsedContent[visualizeIndex].input.name}}
+        {{parsedContent[visualizeIndex].input}}
       </div>
       <template v-if='parsedContent[visualizeIndex].input'>
         <div class="exp-subitem-attr" v-for='(attr_item, attr_index) in parsedContent[visualizeIndex].input.attr_group' @click='view(attr_item.attr_name, attr_item.value)'>
@@ -57,11 +64,18 @@
       <!-- OUTPUT -->
       <div class="exp-subitem" v-if='parsedContent[visualizeIndex].output'>
         <span class="attr-name">OUTPUT</span>
-        {{parsedContent[visualizeIndex].output.name}}
+        {{parsedContent[visualizeIndex].output}}
       </div>
       <template v-if='parsedContent[visualizeIndex].output'>
         <div class="exp-subitem-attr" v-for='(attr_item, attr_index) in parsedContent[visualizeIndex].output.attr_group' @click='view(attr_item.attr_name, attr_item.value)'>
           <span class="attr-name">{{attr_item.attr_name.toUpperCase()}}</span>
+        </div>
+      </template>
+      <!-- MATERIAL -->
+      <template v-if='parsedContent[visualizeIndex].material' v-for='material_item in parsedContent[visualizeIndex].material'>
+        <div class="exp-subitem">
+          <span class="attr-name">MATERIAL</span>
+          <template>{{material_item}}</template>
         </div>
       </template>
     </div>
@@ -70,11 +84,11 @@
       <div class="exp-process-title">PROCESS</div>
       <div class="exp-process-inner" id='process-inner'>
         <template v-for="(process_item, process_index) in processItems">
-          <div v-if='!process_item.exp_name' class="process-item" v-bind:style="{ left: process_item.left, top: process_item.top }">
+          <div v-if='!process_item.exp_name' class="process-item" v-bind:style="{ left: process_item.left, top: process_item.top }" v-tooltip='process_item.name'>
             <span v-if='process_item.condition' class="process-condition">{{process_item.condition}}:</span>
             {{process_item.name}}
           </div>
-          <div v-if='process_item.exp_name' @click='jumpExp(process_item.exp_name)' class="process-item clickable" v-bind:style="{ left: process_item.left, top: process_item.top }">
+          <div v-if='process_item.exp_name' @click='jumpExp(process_item.exp_name)' class="process-item clickable" v-bind:style="{ left: process_item.left, top: process_item.top }" v-tooltip='process_item.name'>
             <span v-if='process_item.condition' class="process-condition">{{process_item.condition}}:</span>
             {{process_item.name}}
             <span class='attr-name'>EXP</span>
@@ -86,6 +100,23 @@
         </template>
       </div>
     </div>
+  </div>
+
+  <div v-if='parsedContent'>
+    <input id="target_input" placeholder="Targets, split with comma" type="text" v-model='target'>
+    <div class="button" id="target_butt" @click='explain()'>Explain</div>
+    <p v-if='filteredContent.length > 0'>
+      Matched:
+      <template v-for='item in filteredContent'>
+        <span class="exp-link" @click='jumpExp(item.name)'>{{item.name}}</span>
+      </template>
+    </p>
+    <p v-if='optionalContent.length > 0'>
+      Optional:
+      <template v-for='item in optionalContent'>
+        <span class="exp-link" @click='jumpExp(item.name)'>{{item.name}}</span>
+      </template>
+    </p>
   </div>
 </div>
 </template>
@@ -105,7 +136,10 @@ export default {
     return {
       saved: -1,
       input: '',
-      parsedContent: '',
+      target: '',
+      parsedContent: [],
+      filteredContent: [],
+      optionalContent: '',
       extractedContent: '',
       errorMessage: '',
       processItems: [],
@@ -122,7 +156,7 @@ export default {
       let list = JSON.parse(localStorage.getItem('savedList'))
       this.saved = index
       this.input = list[index].content
-      this.parsedContent = list[index].parsedContent
+      this.parsedContent = list[index].parsed
     }
   },
   methods: {
@@ -146,7 +180,7 @@ export default {
         let obj = {
           name: myDate.toLocaleString(),
           content: this.input,
-          parsedContent: this.parsedContent
+          parsed: this.parsedContent
         }
         if (!list) {
           this.saved = 0
@@ -171,11 +205,73 @@ export default {
         alert(val)
       }
     },
+    explain() {
+      let that = this
+      let target = this.target
+      if (target.trim() != '') {
+        let obj = {
+          target: target,
+          content: this.input
+        }
+        axios.post('http://127.0.0.1:12580/explain', obj).then(function(res) {
+          res = res.data
+          that.ifAlreadyAlert = false
+          if (!res.status) {
+            let message = res.text
+            alert(`Explain failed: ${message}`)
+          } else {
+            const data = JSON.parse(res.text)
+            that.filteredContent = data.exact
+            that.optionalContent = data.optional
+          }
+        }).catch(function(err) {
+          console.log('error:', err)
+
+          if (!that.ifAlreadyAlert) {
+            that.ifAlreadyAlert = true
+
+            alert('Cannot connect to server, explain failed')
+          }
+        })
+      } else {
+        alert('No target entered')
+      }
+    },
+    export_file() {
+      let that = this
+      let name = prompt("请输入文件名", "exported")
+      if (name.trim() != '') {
+        let obj = {
+          target: name,
+          content: this.input
+        }
+        axios.post('http://127.0.0.1:12580/generate', obj).then(function(res) {
+          res = res.data
+          that.ifAlreadyAlert = false
+          if (!res.status) {
+            let message = res.text
+            alert(`Generate failed: ${message}`)
+          } else {
+            window.open(res.text)
+          }
+        }).catch(function(err) {
+          console.log('error:', err)
+
+          if (!that.ifAlreadyAlert) {
+            that.ifAlreadyAlert = true
+
+            alert('Cannot connect to server, export failed')
+          }
+        })
+      }
+    },
     jumpExp(name) {
       for (let i = 0; i < this.parsedContent.length; i++) {
         if (this.parsedContent[i].name == name) {
           this.visualizeIndex = i
           this.buildExpProcess(i)
+
+          this.ifVisualize = true
 
           break
         }
@@ -261,7 +357,7 @@ export default {
       this.processLines = lineGroup
     },
     visualize() {
-      if (!this.ifAnalysed) {
+      if (this.parsedContent == '') {
         alert("Your EDL hasn't pass analyse, cannot proceed")
 
         return false
@@ -294,7 +390,6 @@ export default {
             } else {
               that.ifAnalysed = true
               that.parsedContent = JSON.parse(res.text)
-              console.log("CONTENT::", that.parsedContent)
               alert('Analyse passed')
             }
           }
@@ -352,9 +447,9 @@ export default {
         e.preventDefault()
         let start = this.$refs.editor.selectionStart
         let end = this.$refs.editor.selectionEnd
-        this.input = this.input.substr(0, start) + '[\n  \n]' + this.input.substr(end)
+        this.input = this.input.substr(0, start) + '[]' + this.input.substr(end)
         this.$nextTick(() => {
-          this.$refs.editor.selectionStart = this.$refs.editor.selectionEnd = start + 4
+          this.$refs.editor.selectionStart = this.$refs.editor.selectionEnd = start + 2
         })
       } else if (e.keyCode == 222 && e.shiftKey) {
         e.preventDefault()
@@ -427,7 +522,7 @@ export default {
         let list = JSON.parse(localStorage.getItem('savedList'))
         this.saved = index
         this.input = list[index].content
-        this.parsedContent = list[index].parsedContent
+        this.parsedContent = list[index].parsed
       }
     }
   }
@@ -441,10 +536,36 @@ textarea {
 
   padding: 8px;
 
+  margin-bottom: 16px;
+
   box-sizing: border-box;
 
   resize: none;
   outline: none;
+}
+
+p {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+p span {
+  color: blue;
+  text-decoration: underline;
+
+  margin-right: 8px;
+
+  cursor: pointer;
+}
+
+input#target_input {
+  width: 450px;
+  height: 40px;
+
+  margin-bottom: 16px;
+
+  font-size: 1.2em;
+  line-height: 40px;
 }
 
 .error-hint {
@@ -458,8 +579,8 @@ textarea {
   background-color: #F5F5F5;
 
   margin-top: 32px;
+  margin-bottom: 16px;
 
-  float: left;
   overflow: hidden;
 }
 
@@ -470,14 +591,18 @@ textarea {
 }
 
 .exp-container {
-  width: 200px;
+  width: 300px;
   height: 60vh;
 
   float: left;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: scroll;
+
+  position: relative;
 }
 
 .exp-item {
+  width: 100%;
   height: 64px;
 
   line-height: 64px;
@@ -489,12 +614,9 @@ textarea {
 
   background-color: #6002EE;
 
-  width: 100%;
-
   padding-left: 8px;
   padding-right: 8px;
 
-  float: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -527,7 +649,7 @@ textarea {
 }
 
 .exp-subitem-attr {
-  width: 256px;
+  width: 356px;
   height: 32px;
 
   line-height: 32px;
@@ -554,7 +676,7 @@ textarea {
 }
 
 .exp-process-container {
-  width: calc(100% - 200px - 8px);
+  width: calc(100% - 300px - 8px);
   height: 60vh;
 
   margin-left: 8px;
@@ -602,6 +724,7 @@ textarea {
   background-color: #263238;
 
   position: absolute;
+  overflow: hidden;
 
   z-index: 2;
 }
