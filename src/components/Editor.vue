@@ -102,7 +102,7 @@
     </div>
   </div>
 
-  <div v-if='parsedContent'>
+  <div v-if='parsedContent.length > 0'>
     <input id="target_input" placeholder="Targets, split with comma" type="text" v-model='target'>
     <div class="button" id="target_butt" @click='explain()'>Explain</div>
     <p v-if='filteredContent.length > 0'>
@@ -139,8 +139,8 @@ export default {
       target: '',
       parsedContent: [],
       filteredContent: [],
-      optionalContent: '',
-      extractedContent: '',
+      optionalContent: [],
+      extractedContent: [],
       errorMessage: '',
       processItems: [],
       processLines: [],
