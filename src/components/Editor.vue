@@ -449,7 +449,7 @@ export default {
         let end = this.$refs.editor.selectionEnd
         this.input = this.input.substr(0, start) + '[]' + this.input.substr(end)
         this.$nextTick(() => {
-          this.$refs.editor.selectionStart = this.$refs.editor.selectionEnd = start + 2
+          this.$refs.editor.selectionStart = this.$refs.editor.selectionEnd = start + 1
         })
       } else if (e.keyCode == 222 && e.shiftKey) {
         e.preventDefault()
